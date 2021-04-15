@@ -15,11 +15,29 @@ def signup():
     hashed_password = generate_password_hash(password)
     user = User(username=username, email=email, password=password, hashed_password=hashed_password)
     if user.save():
-        return jsonify({"success": True})
+        token = create_access_token(identity=user.id)
+        return jsonify({"success": True, "token" : token})
     else:
         return jsonify({
             "errors": user.errors
         })
+
+
+@sessions_api_blueprint.route("/admin/signup", methods=["POST"])
+def admin_signup():
+    username = request.json.get("username")
+    email = request.json.get("email")
+    password = request.json.get("password")
+    hashed_password = generate_password_hash(password)
+    admin = User(username=username, email=email, password=password, hashed_password=hashed_password, is_admin=True)
+    if admin.save():
+        token = create_access_token(identity=admin.id)
+        return jsonify({"success": True, "token": token})
+    else:
+        return jsonify({
+            "errors" : admin.errors
+        })
+
 
 @sessions_api_blueprint.route("/login", methods=["POST"])
 def login():

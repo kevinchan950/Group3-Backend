@@ -30,6 +30,11 @@ class User(UserMixin, BaseModel):
         if len(self.email.strip())==0:
             self.errors.append('Email cannot be blank!')
 
+        if re.match("\w+@\w+.\w+", self.email):
+            pass
+        else:
+            self.errors.append('Email format is not correct!')
+
         if self.password == None:
             pass
         else:
