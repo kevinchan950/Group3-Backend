@@ -68,10 +68,10 @@ def show_cuisine_recipe(cuisine_name):
                 "difficulty" : recipe.difficulty
             }
             results.append(recipe_data)
+        return jsonify({ "data" : results })
     else:
         return jsonify({ "errors" : cuisine_name + " cuisine is not exist"})
 
-    return jsonify({ "data" : results })
 
 
 @cuisines_api_blueprint.route("/<cuisine_name>/recipes/new", methods=["POST"])
@@ -81,15 +81,19 @@ def create_cuisine_recipe(cuisine_name):
  
     if user.is_admin:
         cuisine = Cuisine.get_or_none(name=cuisine_name)
-        name = request.json.get("recipe_name")
-        image = request.json.get("recipe_image")
-        difficulty = request.json.get("recipe_difficulty")
-        recipe = Recipe(name=name, image=image, difficulty=difficulty, cuisine_id=cuisine.id)
-    
-        if recipe.save():
-            return jsonify({ "successful" : True , "message" : name + " has been successfully created for " + cuisine_name + " cuisine."})
+        
+        if cuisine:
+            name = request.json.get("recipe_name")
+            image = request.json.get("recipe_image")
+            difficulty = request.json.get("recipe_difficulty")
+            recipe = Recipe(name=name, image=image, difficulty=difficulty, cuisine_id=cuisine.id)
+        
+            if recipe.save():
+                return jsonify({ "successful" : True , "message" : name + " has been successfully created for " + cuisine_name + " cuisine."})
+            else:
+                return jsonify({ "errors" : recipe.errors })
         else:
-            return jsonify({ "errors" : recipe.errors })      
+            return jsonify({ "errors" : cuisine_name + " cuisine is not exist" })      
     else:
         return jsonify({ "errors" : "Non-admin user detected. Request cannot be done." }) 
     
@@ -102,14 +106,18 @@ def delete_cuisine_recipe(cuisine_name):
 
     if user.is_admin:
         cuisine = Cuisine.get_or_none(name=cuisine_name)
-        id = request.json.get("recipe_id")
-        recipe = Recipe.get_by_id(id)
+        
+        if cuisine:
+            id = request.json.get("recipe_id")
+            recipe = Recipe.get_by_id(id)
 
-        if recipe.cuisine_id == cuisine.id:
-            recipe.delete_instance()
-            return jsonify({ "message" : recipe.name + " has been successfully deleted from " + cuisine_name + " cuisine." })
+            if recipe.cuisine_id == cuisine.id:
+                recipe.delete_instance()
+                return jsonify({ "message" : recipe.name + " has been successfully deleted from " + cuisine_name + " cuisine." })
+            else:
+                return jsonify({ "errors" : recipe.name + " is not found in " + cuisine_name + " cuisine."})
         else:
-            return jsonify({ "errors" : recipe.name + " is not found in " + cuisine_name + " cuisine."})
+            return jsonify({ "errors" : cuisine_name + " cuisine is not exist" }) 
     else:
         return jsonify({ "errors" : "Non-admin user deteced. Request cannot be done." })
 
@@ -130,13 +138,13 @@ def show_cuisine_single_recipe(cuisine_name, recipe_name):
                         "image" : r.image,
                         "difficulty" : r.difficulty
                     }
+                return jsonify({ "data": result })
             else:
                 return jsonify({ "erros" : recipe_name + " is not found in " + cuisine_name + " cuisine." })
         else:
             return jsonify({ "errors" : "Recipe not exists" })
     else:
         return jsonify({ "errors" : cuisine_name + " cuisine is not exist"})
-    return jsonify({ "data": result })
 # --------------------------------------------------------------------------------------------------------
 
 # API for step of each recipe
