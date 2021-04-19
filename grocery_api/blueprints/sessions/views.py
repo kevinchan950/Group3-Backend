@@ -24,12 +24,12 @@ def signup():
         })
 
 
-@sessions_api_blueprint.route("/signup/checkemail", methods=["GET"])
-def check_email():
-    check_email = request.json.get("email")
-    email = User.get_or_none(email = check_email)
+@sessions_api_blueprint.route("/signup/checkemail=<email>", methods=["GET"])
+def check_email(email):
+
+    check_email = User.get_or_none(email = email)
     
-    if email:
+    if check_email:
         return jsonify({
             "exist" : True
         })
@@ -39,12 +39,12 @@ def check_email():
         })
 
 
-@sessions_api_blueprint.route("/signup/checkusername", methods=["GET"])
-def check_username():
-    check_username = request.json.get("username")
-    username = User.get_or_none(username = check_username)
+@sessions_api_blueprint.route("/signup/checkusername=<username>", methods=["GET"])
+def check_username(username):
 
-    if username: 
+    check_username = User.get_or_none(username = username)
+
+    if check_username: 
         return jsonify({
             "exist" : True
         })
