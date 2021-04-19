@@ -41,7 +41,11 @@ def check_email(email):
 
 @sessions_api_blueprint.route("/signup/checkusername=<username>", methods=["GET"])
 def check_username(username):
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 8ced214a020d5a89c597d34e93c8d7eca65c9fe1
     check_username = User.get_or_none(username = username)
 
     if check_username: 
