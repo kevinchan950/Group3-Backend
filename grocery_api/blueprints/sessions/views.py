@@ -3,7 +3,8 @@ from flask.helpers import url_for
 from flask_jwt_extended import create_access_token
 from models.user import User
 from werkzeug.security import generate_password_hash, check_password_hash
-from grocery_api.utils.google_oauth import oauth
+from authlib.integrations.requests_client import OAuth2Session
+import os
 
 
 sessions_api_blueprint = Blueprint('sessions_api', __name__)
@@ -82,25 +83,27 @@ def login():
             return jsonify({ "token" : token })
 
 
-@sessions_api_blueprint.route("/google_login")
-def google_login():
-    redirect_url = url_for('sessions_api.authorize', _external = True)
-    return oauth.google.authorize_redirect(redirect_url)
 
-
-@sessions_api_blueprint.route("/authorize/google")
+@sessions_api_blueprint.route("/authorize/google", methods=["POST"])
 def authorize():
-    oauth.google.authorize_access_token()
-    name = oauth.google.get('https://www.googleapis.com/oauth2/v2/userinfo').json()['name']
-    email = oauth.google.get('https://www.googleapis.com/oauth2/v2/userinfo').json()['email']
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+    token = request.json.get("token")
+    client = OAuth2Session(client_id, client_secret, token=token)
+    account_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+    client = OAuth2Session(client_id, client_secret, token=token)
+    resp = client.get(account_url)
+    username = resp.json()['name']
+    email = resp.json()['email']
     user = User.get_or_none(User.email == email)
+    
     if user:
         token = create_access_token(identity=user.id)
         return jsonify({ "token" : token })
     else:
         password = os.urandom(8)
         hashed_password = generate_password_hash(password)
-        create_user = User(name=name, email = email, hashed_password=hashed_password)
+        create_user = User(username=username, email = email, hashed_password=hashed_password)
         create_user.save()
         token = create_access_token(identity=create_user.id)
         return jsonify({ "token" : token })
