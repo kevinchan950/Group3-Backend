@@ -4,6 +4,7 @@ from models.base_model import db
 from models.user import User
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 import config
 import os
 
@@ -15,6 +16,8 @@ csrf = CSRFProtect(app)
 jwt = JWTManager(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
+CORS(app)
+cors = CORS(app, resources={r"/api/*": {"origins":"*"}})
 
 if os.getenv('FLASK_ENV') == 'production':
     app.config.from_object("config.ProductionConfig")
