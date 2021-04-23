@@ -42,7 +42,7 @@ def check_email(email):
 
 @sessions_api_blueprint.route("/signup/checkusername=<username>", methods=["GET"])
 def check_username(username):
-
+    
     check_username = User.get_or_none(username = username)
 
     if check_username: 
