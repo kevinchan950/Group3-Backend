@@ -1,3 +1,4 @@
+from logging import error
 from types import MethodDescriptorType
 from flask import Blueprint, jsonify, request
 from models.cuisine import Cuisine
@@ -37,11 +38,12 @@ def create_cuisine():
     user = User.get_by_id(get_jwt_identity())
     if user.is_admin: 
         name = request.json.get("name")
+        if name=="":
+            return error
         cuisine = Cuisine(name=name)
         if cuisine.save():
             return jsonify({"successful" : True, "message" : name + " cuisine is created successfully"})
-        else:
-            return jsonify({ "errors" : cuisine.errors })
+        
     else:
         return jsonify({ "errors" : "Non-admin user detected. Request cannot be done." })
 
@@ -77,15 +79,60 @@ def update_cuisine():
 
 # API for recipes of each cuisine
 # --------------------------------------------------------------------------------------------------------
+@cuisines_api_blueprint.route("/recipes/<id>", methods=["GET"])
+def show_single_recipe(id):
+    recipe = Recipe.get_by_id(id)
+    step = Step.select().where(Step.recipe_id==id)
+    # recipe_ingredient = RecipeIngredient.get(recipe_id=id)
+    if recipe: 
+        
+        step_data = []
+        for s in step:
+            data = {
+                "number": s.number,
+                "description": s.description
+            }
+            step_data.append(data)
+        
+        results = {
+            "id" : recipe.id,
+            "name" : recipe. name,
+            "image" : recipe.image,
+            "step" : step_data
+        }
+        return jsonify({ "data" : results})
+
+
 @cuisines_api_blueprint.route("/<cuisine_name>/recipes", methods=["GET"])
 def show_cuisine_recipe(cuisine_name):
     cuisine = Cuisine.get_or_none(name=cuisine_name)
 
     if cuisine:
         recipe_all = Recipe.select().where(Recipe.cuisine_id == cuisine.id)
+        results=[]
+        for recipe in recipe_all:
+            recipe_data = {
+                "name": recipe.name,
+                "image": recipe.image,
+                "difficulty": recipe.difficulty
+            }
+            results.append(recipe_data)
+        return jsonify({ "data" : results})
+    else:
+        return jsonify({ "errors" : cuisine_name + " cuisine is not exist"})
+
+
+@cuisines_api_blueprint.route("/<cuisine_name>/recipes/<difficulty>", methods=["GET"])
+def show_cuisine_recipe_difficulty(cuisine_name,difficulty):
+    cuisine = Cuisine.get_or_none(name=cuisine_name)
+
+    if cuisine:
+        recipe_difficulty = difficulty
+        recipe_all = Recipe.select().where(Recipe.cuisine_id == cuisine.id, Recipe.difficulty==recipe_difficulty)
         results = []
         for recipe in recipe_all:
             recipe_data = {
+                "id" : recipe.id,
                 "name" : recipe.name,
                 "image" : recipe.image,
                 "difficulty" : recipe.difficulty
@@ -123,8 +170,6 @@ def create_cuisine_recipe(cuisine_name):
         
             if recipe.save():
                 return jsonify({ "successful" : True , "message" : name + " has been successfully created for " + cuisine_name + " cuisine."})
-            else:
-                return jsonify({ "errors" : recipe.errors })
         else:
             return jsonify({ "errors" : cuisine_name + " cuisine is not exist" })      
     else:
@@ -198,7 +243,7 @@ def update_cuisine_recipe(cuisine_name):
                 update.execute()
                 return jsonify({ "message" : "Image has been successfully updated" })
             else:
-                return jsonify({ "message" : "Update cannot be done!"})
+                return error
         else:
             return jsonify({ "errors" : cuisine_name + " cuisine is not exist" })
     else:
@@ -309,10 +354,9 @@ def delete_recipe_step(cuisine_name, recipe_name):
             recipe = Recipe.get_or_none(name=recipe_name)
             if recipe:
                 step_number = request.form.get("step_number")
-                step = Step.get(number=step_number)
-                if step.recipe_id == recipe.id:
-                    step.delete_instance()
-                    return jsonify({ "message" : "Step has been successfully deleted." })
+                delete = Step.delete().where(Step.number==step_number, Step.recipe_id == recipe.id)
+                delete.execute()
+                return jsonify({ "message" : "Step has been successfully deleted." })
             else:
                 return jsonify({ "errors" : "Recipe not exists" })
         else:
@@ -369,3 +413,54 @@ def show_recipe_ingredient(cuisine_name, recipe_name):
             return jsonify({ "errors" : "Recipe not exists" })
     else:
         return jsonify({ "errors" : cuisine_name + " cusine is not exist" })
+
+
+@cuisines_api_blueprint.route("/<cuisine_name>/recipes/<recipe_name>/ingredients/new", methods=["POST"])
+@jwt_required()
+def add_recipe_ingredient(cuisine_name, recipe_name):
+    current_user = User.get_by_id(get_jwt_identity())
+
+    if current_user.is_admin:
+        cuisine = Cuisine.get_or_none(name=cuisine_name)
+        if cuisine:
+            recipe = Recipe.get_or_none(name=recipe_name)
+            if recipe:
+                if recipe.cuisine_id == cuisine.id:
+                    quantity = request.form.get("quantity")
+                    name = request.form.get("name")
+                    recipe_ingredient = RecipeIngredient(name= name, quantity= quantity, recipe_id=recipe.id)
+                    recipe_ingredient.save()
+                    return jsonify({ "message" : "Ingredient has been successfully created!"})
+                else:
+                    return jsonify({ "errors" : recipe_name + " is not found in " + cuisine_name + " cuisine." })
+            else:
+                return jsonify({ "errors" : "Recipe not exists" })
+        else:
+            return jsonify({ "errors" : cuisine_name + " cusine is not exist" })
+    else:
+        return 0    
+
+
+@cuisines_api_blueprint.route("/<cuisine_name>/recipes/<recipe_name>/ingredients/delete", methods=["POST"])
+@jwt_required()
+def delete_recipe_ingredient(cuisine_name, recipe_name):
+    current_user = User.get_by_id(get_jwt_identity())
+
+    if current_user.is_admin:
+        cuisine = Cuisine.get_or_none(name=cuisine_name)
+        if cuisine:
+            recipe = Recipe.get_or_none(name=recipe_name)
+            if recipe:
+                if recipe.cuisine_id == cuisine.id:
+                    name = request.form.get("name")
+                    delete = RecipeIngredient.delete().where(RecipeIngredient.name == name, RecipeIngredient.recipe_id == recipe.id)
+                    delete.execute()
+                    return jsonify({ "message" : "Ingredient has been successfully deleted!"})
+                else:
+                    return jsonify({ "errors" : recipe_name + " is not found in " + cuisine_name + " cuisine." })
+            else:
+                return jsonify({ "errors" : "Recipe not exists" })
+        else:
+            return jsonify({ "errors" : cuisine_name + " cusine is not exist" })
+    else:
+        return 0
