@@ -83,7 +83,7 @@ def update_cuisine():
 def show_single_recipe(id):
     recipe = Recipe.get_by_id(id)
     step = Step.select().where(Step.recipe_id==id)
-    # recipe_ingredient = RecipeIngredient.get(recipe_id=id)
+    recipe_ingredient = RecipeIngredient.select().where(RecipeIngredient.recipe_id == id)
     if recipe: 
         
         step_data = []
@@ -93,12 +93,20 @@ def show_single_recipe(id):
                 "description": s.description
             }
             step_data.append(data)
+
+        ingredient_data = []
+        for i in recipe_ingredient:
+            data = {
+                "name": i.name
+            }
+            ingredient_data.append(data)
         
         results = {
             "id" : recipe.id,
             "name" : recipe. name,
             "image" : recipe.image,
-            "step" : step_data
+            "step" : step_data,
+            "ingredient": ingredient_data
         }
         return jsonify({ "data" : results})
 
