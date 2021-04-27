@@ -17,7 +17,7 @@ def signup():
     hashed_password = generate_password_hash(password)
     user = User(username=username, email=email, password=password, hashed_password=hashed_password)
     if user.save():
-        token = create_access_token(identity=user.id)
+        token = create_access_token(identity=user.id, expires_delta = False)
         return jsonify({"success": True, "token" : token})
     else:
         return jsonify({
@@ -63,7 +63,7 @@ def admin_signup():
     hashed_password = generate_password_hash(password)
     admin = User(username=username, email=email, password=password, hashed_password=hashed_password, is_admin=True)
     if admin.save():
-        token = create_access_token(identity=admin.id)
+        token = create_access_token(identity=admin.id, expires_delta = False)
         return jsonify({"success": True, "token": token})
     else:
         return jsonify({
@@ -79,7 +79,7 @@ def login():
     user = User.get_or_none(username=username)
     if user:
         if check_password_hash(user.hashed_password, password):
-            token = create_access_token(identity=user.id)
+            token = create_access_token(identity=user.id, expires_delta = False)
             return jsonify({ "token" : token })
 
 
@@ -105,5 +105,5 @@ def authorize():
         hashed_password = generate_password_hash(password)
         create_user = User(username=username, email = email, hashed_password=hashed_password)
         create_user.save()
-        token = create_access_token(identity=create_user.id)
+        token = create_access_token(identity=create_user.id, expires_delta = False)
         return jsonify({ "token" : token })
